@@ -28,6 +28,8 @@ AI:train(dataset, LR, iterations)
 local output = AI:predict(X)
 ```
 
+Run demo.lua for a demo!
+
 
 <sub>This library is currently designed for computer vision, using the softplus activator and the soft/argmax algorithm to calculate. Future support will come allowing for dynamic algorithms (and maybe presets!) but for now this library is rather limited.</sub>
 

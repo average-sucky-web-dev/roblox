@@ -29,7 +29,6 @@ local function createDataset(n)
 	return dataset
 end
 
-NNetwork.load()
 local dataset = createDataset(100)
 print(AI:train(dataset, 0.1, 200))
 

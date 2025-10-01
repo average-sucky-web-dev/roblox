@@ -30,3 +30,5 @@ local output = AI:predict(X)
 
 
 <sub>This library is currently designed for computer vision, using the softplus activator and the soft/argmax algorithm to calculate. Future support will come allowing for dynamic algorithms (and maybe presets!) but for now this library is rather limited.</sub>
+
+<sub>oh yeah made by tycoonplayer on dsc cause i forgot to include credit for the ppl reading my application</sub>

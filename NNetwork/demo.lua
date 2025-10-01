@@ -2,6 +2,7 @@ local NNetwork = require(script.Parent.NNetwork)
 
 local AI = NNetwork.new({4, 10, 4})
 
+-- creates a dataset that trains an AI to predict an output based off the mean of the 4 objects together
 local function createDataset(n)
 	local dataset = {}
 	for i = 1, n do
@@ -31,4 +32,6 @@ end
 NNetwork.load()
 local dataset = createDataset(100)
 print(AI:train(dataset, 0.1, 200))
+
+-- should print {0, 1, 0, 0}
 print(AI:predict({0.4, 0.2, 1, 0.35}))

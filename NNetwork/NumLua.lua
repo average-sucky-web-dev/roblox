@@ -212,6 +212,7 @@ local function broadcast(a, b)
 	end
 	return a, b
 end
+-- yes i know i could do this better im really just too tired to rewrite code that already works
 local function addArrays(a, b)
 	if typeof(a) ~= "table" and typeof(b) ~= "table" then
 		return a + b 

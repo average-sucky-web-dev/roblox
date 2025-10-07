@@ -1,3 +1,6 @@
+local NLArray = {}
+NLArray.__index = NLArray
+
 local function copy(old, new)
 	for key, value in old do
 		if typeof(value) == "table" then
@@ -212,37 +215,14 @@ local function broadcast(a, b)
 	end
 	return a, b
 end
--- yes i know i could do this better im really just too tired to rewrite code that already works
-local function addArrays(a, b)
+local function arrayOperate(a, b, func)
 	if typeof(a) ~= "table" and typeof(b) ~= "table" then
-		return a + b 
+		return func(a, b)
 	end
 
 	local result = {}
 	for i = 1, #a do
-		result[i] = addArrays(a[i], b[i])
-	end
-	return result
-end
-local function divideArrays(a, b)
-	if typeof(a) ~= "table" and typeof(b) ~= "table" then
-		return a / b
-	end
-
-	local result = {}
-	for i = 1, #a do
-		result[i] = addArrays(a[i], b[i])
-	end
-	return result
-end
-local function multiArrays(a, b)
-	if typeof(a) ~= "table" and typeof(b) ~= "table" then
-		return a * b
-	end
-
-	local result = {}
-	for i = 1, #a do
-		result[i] = multiArrays(a[i], b[i])
+		result[i] = arrayOperate(a[i], b[i], func)
 	end
 	return result
 end
@@ -268,58 +248,81 @@ function dot1D(a, b)
 	return result
 end
 local np = {}
+
+function NLArray.new(tbl)
+	if getmetatable(tbl) == NLArray then
+		return tbl
+	end
+	return setmetatable(tbl or {}, NLArray)
+end
+
 np.exp = function(a)
 	local result = copyTable(a)
 	local dimen = getDimension(result)
 	applyToNested(result, function(item)
 		return math.exp(item)
 	end, dimen)
-	return result
+	return NLArray.new(result)
 end
 np.multiply = function(a, b)
 	if typeof(a) == "number" then
 		local result = copyTable(b)
 		applyToNested(result, function(item) return item * a end, getDimension(result))
-		return result
+		return NLArray.new(result)
 	elseif typeof(b) == "number" then
 		local result = copyTable(a)
 		applyToNested(result, function(item) return item * b end, getDimension(result))
-		return result
+		return NLArray.new(result)
 	end
 	if getDimensionLength(a) ~= getDimensionLength(b) then
 		a, b = broadcast(a, b)
 	end
-	return multiArrays(a, b)
+	return NLArray.new(arrayOperate(a, b, function(x, y) return x * y end))
 end
 np.add = function(a, b)
 	if typeof(a) == "number" then
 		local result = copyTable(b)
 		applyToNested(result, function(item) return item + a end, getDimension(result))
-		return result
+		return NLArray.new(result)
 	elseif typeof(b) == "number" then
 		local result = copyTable(a)
 		applyToNested(result, function(item) return item + b end, getDimension(result))
-		return result
+		return NLArray.new(result)
 	end
 	if getDimensionLength(a) ~= getDimensionLength(b) then
 		a, b = broadcast(a, b)
 	end
-	return addArrays(a, b)
+	return NLArray.new(arrayOperate(a, b, function(x, y) return x + y end))
+end
+np.subtract = function(a, b)
+	if typeof(a) == "number" then
+		local result = copyTable(b)
+		applyToNested(result, function(item) return item - a end, getDimension(result))
+		return NLArray.new(result)
+	elseif typeof(b) == "number" then
+		local result = copyTable(a)
+		applyToNested(result, function(item) return item - b end, getDimension(result))
+		return NLArray.new(result)
+	end
+	if getDimensionLength(a) ~= getDimensionLength(b) then
+		a, b = broadcast(a, b)
+	end
+	return NLArray.new(arrayOperate(a, b, function(x, y) return x - y end))
 end
 np.divide = function(a, b)
 	if typeof(a) == "number" then
 		local result = copyTable(b)
 		applyToNested(result, function(item) return a / item end, getDimension(result))
-		return result
+		return NLArray.new(result)
 	elseif typeof(b) == "number" then
 		local result = copyTable(a)
 		applyToNested(result, function(item) return item / b end, getDimension(result))
-		return result
+		return NLArray.new(result)
 	end
 	if getDimensionLength(a) ~= getDimensionLength(b) then
 		a, b = broadcast(a, b)
 	end
-	return divideArrays(a, b)
+	return NLArray.new(arrayOperate(a, b, function(x, y) return x / y end))
 end
 np.dot = function(a, b)
 	local result = {}
@@ -329,11 +332,11 @@ np.dot = function(a, b)
 	elseif #args["2D"] == 2 then
 		result = matmul(args["2D"][1], args["2D"][2])
 	elseif #args["1D"] == 2 then
-		dot1D(args["1D"][1], args["1D"][2])
+		result = dot1D(args["1D"][1], args["1D"][2])
 	elseif args["2D"] and args["1D"] then
 		result = dot1D_2D(args["1D"][1], args["2D"][1])
 	end
-	return result
+	return NLArray.new(result)
 end
 np.log = function(a, epsilon)
 	epsilon = epsilon or 1e-15
@@ -343,7 +346,7 @@ np.log = function(a, epsilon)
 		local safeItem = math.max(item, epsilon)
 		return math.log(safeItem)
 	end, dimen)
-	return result
+	return NLArray.new(result)
 end
 np.transpose = function(mat)
 	local rows = #mat
@@ -355,7 +358,66 @@ np.transpose = function(mat)
 			result[j][i] = mat[i][j]
 		end
 	end
-	return result
+	return NLArray.new(result)
 end
+np.max = function(a, b)
+	if typeof(a) == "number" then
+		local result = copyTable(b)
+		applyToNested(result, function(item) return math.max(a, item) end, getDimension(result))
+		return NLArray.new(result)
+	elseif typeof(b) == "number" then
+		local result = copyTable(a)
+		applyToNested(result, function(item) return math.max(item, b) end, getDimension(result))
+		return NLArray.new(result)
+	end
+	if getDimensionLength(a) ~= getDimensionLength(b) then
+		a, b = broadcast(a, b)
+	end
+	return NLArray.new(arrayOperate(a, b, function(x, y) return math.max(x, y) end))
+end
+
+
+function NLArray.__unm(self)
+	local result = copyTable(self)
+	local dimen = getDimension(result)
+	applyToNested(result, function(item)
+		return -item
+	end, dimen)
+	return NLArray.new(result)
+end
+
+function NLArray.__add(self, other)
+	return NLArray.new(np.add(self, other))
+end
+
+function NLArray.__sub(self, other)
+	return NLArray.new(np.subtract(self, other))
+end
+
+function NLArray.__mul(self, other)
+	return NLArray.new(np.multiply(self, other))
+end
+
+function NLArray.__div(self, other)
+	return NLArray.new(np.divide(self, other))
+end
+
+function NLArray.dot(self, other)
+	return NLArray.new(np.dot(self, other))
+end
+
+function NLArray.log(self)
+	return NLArray.new(np.log(self))
+end
+
+function NLArray.exp(self)
+	return NLArray.new(np.exp(self))
+end
+
+function NLArray.transpose(self)
+	return NLArray.new(np.transpose(self))
+end
+
+np.NLArray = NLArray
 
 return np

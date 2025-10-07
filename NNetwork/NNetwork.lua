@@ -1,5 +1,6 @@
 -- Globals
 local np = require(script.Parent.NumLua)
+local presets = require(script.Parent.Presets)
 local NNetwork = {}
 NNetwork.__index = NNetwork
 
@@ -53,17 +54,49 @@ end
 -- Metatable functionality
 
 -- Creates a new neural network based on parameter lengths
-function NNetwork.new(params: {})
+function NNetwork.new(params: {}, activation, derivative)
 	local self = setmetatable({}, NNetwork)
 	self.params = initParams(params)
+	if not activation then
+		activation = presets.Activations["softplus"].active
+	end
+	if not derivative then
+		derivative = presets.Activations["softplus"].deriv
+	end
+	self.active = activation
+	self.deriv = derivative
 	return self
 end
 
--- Loads an existing neural network based on a W&B table
+function NNetwork.preset(params, preset)
+	local self = setmetatable({}, NNetwork)
+	self.params = initParams(params)
+	self.active = presets.Activations[preset].active
+	self.deriv = presets.Activations[preset].deriv
+	self.preset = preset
+	return self
+end
+
+-- Loads an existing neural network based on a generated NN export
 function NNetwork.load(params: {})
 	local self = setmetatable({}, NNetwork)
-	self.params = params
+	for key, item in params do
+		self[key] = item
+	end
 	return self
+end
+
+function NNetwork:export()
+	local export = {}
+	export.params = self.params
+	export.active = self.active
+	export.deriv = self.deriv
+	if self.preset then
+		export.preset = self.preset
+	else
+		warn("custom functions will not save to datastores! consider mapping your exsisting functions to a custom table")
+	end
+	return export
 end
 
 -- Internal function, runs a forward pass through the network
@@ -81,11 +114,8 @@ function NNetwork:forwardprop(X)
 		local Aprev = A
 		local W = self.params["W"..l]
 		local b = self.params["b"..l]
-
 		local Z = np.add(b, np.dot(W, Aprev))
-
-		A = softplus(Z)
-
+		A = self.active(Z)
 		table.insert(caches, {
 			Aprev = Aprev,
 			W = W,
@@ -129,7 +159,7 @@ function NNetwork:backprop(X, Y, caches)
 		if layer > 1 then
 			local dAprev = np.dot(np.transpose(self.params["W"..layer]), dZ)
 			local Zprev = caches[layer - 1].Z
-			dZ = np.multiply(dAprev, softplusDeriv(Zprev))
+			dZ = np.multiply(dAprev, self.deriv(Zprev))
 		end
 	end
 

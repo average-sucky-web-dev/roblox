@@ -21,15 +21,13 @@ local function RegisterEventCallback(identifier, uuid, fn)
 end
 
 local function FireEvent(identifier, ...)
-	local args = ...
-	rinterchange:FireServer(identifier, args)
+	rinterchange:FireServer(identifier, ...)
 end
 
 rinterchange.OnClientEvent:Connect(function(identifier, ...)
-	local args = ...
 	if identifier and events[identifier] then
 		for _, func in events[identifier] do
-			task.spawn(func, args)
+			task.spawn(func, ...)
 		end
 	end
 end)
@@ -56,8 +54,7 @@ function Event:Disconnect()
 end
 
 function Event:FireServer(...)
-	local args = ...
-	FireEvent(self.identifier, args)
+	FireEvent(self.identifier, ...)
 end
 -------------------------------------------------------------------------------------------
 -- END EVENT BLOCK
@@ -70,14 +67,12 @@ local function RegisterFunctionCallback(identifier, fn)
 end
 
 local function InvokeServer(identifier, ...)
-	local args = ...
-	return finterchange:InvokeServer(identifier, args)
+	return finterchange:InvokeServer(identifier, ...)
 end
 
 finterchange.OnClientInvoke = function(identifier, ...)
-	local args = ...
 	if identifier and functions[identifier] then
-		return functions[identifier](args)
+		return functions[identifier](...)
 	end
 end
 
@@ -106,8 +101,7 @@ function Function:Disconnect()
 end
 
 function Function:InvokeServer(...)
-	local args = ...
-	return InvokeServer(self.identifier, args)
+	return InvokeServer(self.identifier, ...)
 end
 -------------------------------------------------------------------------------------------
 -- END FUNCTION BLOCK
